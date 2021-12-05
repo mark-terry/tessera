@@ -71,6 +71,11 @@ public class TesseraCommand implements Callable<CliResult> {
       description = "Start Tessera in recovery mode")
   private boolean recover;
 
+  @CommandLine.Option(
+      names = {"--outputServerURIs"},
+      description = "Output the server URI(s) to file")
+  private boolean outputServerURIs;
+
   @CommandLine.Mixin public DebugOptions debugOptions;
 
   @CommandLine.Unmatched public List<String> unmatchedEntries;
@@ -116,6 +121,10 @@ public class TesseraCommand implements Callable<CliResult> {
 
     if (recover) {
       config.setRecoveryMode(true);
+    }
+
+    if (outputServerURIs) {
+      config.setOutputServerURIs(true);
     }
 
     final Set<ConstraintViolation<Config>> violations = validator.validate(config);

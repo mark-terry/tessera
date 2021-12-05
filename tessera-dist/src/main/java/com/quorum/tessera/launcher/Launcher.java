@@ -7,6 +7,9 @@ import com.quorum.tessera.config.apps.TesseraApp;
 import com.quorum.tessera.recovery.Recovery;
 import com.quorum.tessera.server.TesseraServer;
 import com.quorum.tessera.server.TesseraServerFactory;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -15,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public enum Launcher {
   NORMAL {
     @Override
-    public List<TesseraServer> launchServer(Config config) throws Exception {
+    public void launchServer(Config config) throws Exception {
       LOGGER.debug("Creating servers");
       config
           .getServerConfigs()
@@ -74,13 +77,16 @@ public enum Launcher {
         LOGGER.debug("Started server {}", ts);
       }
       LOGGER.debug("Created servers");
-      return servers;
+
+      if (config.outputServerURIs()) {
+        writeServerURIs(config, servers);
+      }
     }
   },
 
   RECOVERY {
     @Override
-    public List<TesseraServer> launchServer(Config config) throws Exception {
+    public void launchServer(Config config) throws Exception {
 
       final ServerConfig recoveryP2PServer = config.getP2PServerConfig();
 
@@ -121,13 +127,12 @@ public enum Launcher {
       final int exitCode = Recovery.create().recover();
 
       System.exit(exitCode);
-      return Collections.emptyList();
     }
   };
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Launcher.class);
 
-  public abstract List<TesseraServer> launchServer(Config config) throws Exception;
+  public abstract void launchServer(Config config) throws Exception;
 
   public static Launcher create(final boolean isRecoveryMode) {
     if (isRecoveryMode) {
@@ -135,5 +140,43 @@ public enum Launcher {
     } else {
       return Launcher.NORMAL;
     }
+  }
+
+  private static void writeServerURIs(final Config config, final List<TesseraServer> servers)
+      throws IOException {
+    final TesseraServer q2tServer =
+        servers.stream()
+            .filter(server -> server.getAppType() != null && server.getAppType() == AppType.Q2T)
+            .findFirst()
+            .orElse(null);
+
+    final TesseraServer p2pServer =
+        servers.stream()
+            .filter(server -> server.getAppType() != null && server.getAppType() == AppType.P2P)
+            .findFirst()
+            .orElse(null);
+
+    final TesseraServer thirdPartyServer =
+        servers.stream()
+            .filter(
+                server -> server.getAppType() != null && server.getAppType() == AppType.THIRD_PARTY)
+            .findFirst()
+            .orElse(null);
+
+    final String urlString = config.getJdbcConfig().getUrl();
+    final String dirPath = urlString.split(":")[2].split(";")[0];
+
+    Launcher.writePortFiles(dirPath, q2tServer, "q2tServer.uri");
+    Launcher.writePortFiles(dirPath, p2pServer, "p2pServer.uri");
+    Launcher.writePortFiles(dirPath, thirdPartyServer, "thirdPartyServer.uri");
+  }
+
+  private static void writePortFiles(
+      final String dirPath, final TesseraServer tesseraServer, final String output)
+      throws IOException {
+    final FileWriter fileWriter = new FileWriter(new File(dirPath, output));
+    fileWriter.write(tesseraServer.getUri().toString());
+    fileWriter.flush();
+    fileWriter.close();
   }
 }
