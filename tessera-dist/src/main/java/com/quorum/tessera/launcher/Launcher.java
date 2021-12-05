@@ -10,6 +10,8 @@ import com.quorum.tessera.server.TesseraServerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -79,7 +81,22 @@ public enum Launcher {
       LOGGER.debug("Created servers");
 
       if (config.outputServerURIs()) {
-        writeServerURIs(config, servers);
+        // Write server URIs to file
+        final List<String> uriPaths = writeServerURIs(config, servers);
+
+        // Add a shutdown hook to clean them up
+        Runtime.getRuntime()
+            .addShutdownHook(
+                new Thread(
+                    () -> {
+                      try {
+                        for (final String uriFilePath : uriPaths) {
+                          Files.delete(Path.of(uriFilePath));
+                        }
+                      } catch (Exception ex) {
+                        LOGGER.error(null, ex);
+                      }
+                    }));
       }
     }
   },
@@ -141,8 +158,8 @@ public enum Launcher {
     return Launcher.NORMAL;
   }
 
-  private static void writeServerURIs(final Config config, final List<TesseraServer> servers)
-      throws IOException {
+  private static List<String> writeServerURIs(
+      final Config config, final List<TesseraServer> servers) throws IOException {
     final TesseraServer q2tServer =
         servers.stream()
             .filter(server -> server.getAppType() != null && server.getAppType() == AppType.Q2T)
@@ -165,17 +182,23 @@ public enum Launcher {
     final String urlString = config.getJdbcConfig().getUrl();
     final String dirPath = urlString.split(":")[2].split(";")[0];
 
-    Launcher.writePortFiles(dirPath, q2tServer, "q2tServer.uri");
-    Launcher.writePortFiles(dirPath, p2pServer, "p2pServer.uri");
-    Launcher.writePortFiles(dirPath, thirdPartyServer, "thirdPartyServer.uri");
+    final List<String> uriPaths = new LinkedList<>();
+
+    uriPaths.add(Launcher.writePortFiles(dirPath, q2tServer, "q2tServer.uri"));
+    uriPaths.add(Launcher.writePortFiles(dirPath, p2pServer, "p2pServer.uri"));
+    uriPaths.add(Launcher.writePortFiles(dirPath, thirdPartyServer, "thirdPartyServer.uri"));
+
+    return uriPaths;
   }
 
-  private static void writePortFiles(
+  private static String writePortFiles(
       final String dirPath, final TesseraServer tesseraServer, final String output)
       throws IOException {
-    final FileWriter fileWriter = new FileWriter(new File(dirPath, output));
+    final File newFile = new File(dirPath, output);
+    final FileWriter fileWriter = new FileWriter(newFile);
     fileWriter.write(tesseraServer.getUri().toString());
     fileWriter.flush();
     fileWriter.close();
+    return newFile.getAbsolutePath();
   }
 }
