@@ -137,9 +137,8 @@ public enum Launcher {
   public static Launcher create(final boolean isRecoveryMode) {
     if (isRecoveryMode) {
       return Launcher.RECOVERY;
-    } else {
-      return Launcher.NORMAL;
     }
+    return Launcher.NORMAL;
   }
 
   private static void writeServerURIs(final Config config, final List<TesseraServer> servers)

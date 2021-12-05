@@ -1,6 +1,5 @@
 module tessera.application {
   exports com.quorum.tessera.launcher;
-  exports com.quorum.tessera.launcher.test;
 
   requires jakarta.validation;
   requires org.apache.commons.lang3;
