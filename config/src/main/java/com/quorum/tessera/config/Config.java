@@ -58,6 +58,8 @@ public class Config extends ConfigItem {
 
   @XmlTransient private boolean outputServerURIs;
 
+  @XmlTransient private String outputServerURIPath;
+
   @XmlElement(name = "mode")
   private ClientMode clientMode = ClientMode.TESSERA;
 
@@ -203,6 +205,14 @@ public class Config extends ConfigItem {
 
   public boolean outputServerURIs() {
     return outputServerURIs;
+  }
+
+  public void setOutputServerURIPath(String outputServerURIPath) {
+    this.outputServerURIPath = outputServerURIPath;
+  }
+
+  public String outputServerURIPath() {
+    return outputServerURIPath;
   }
 
   public ClientMode getClientMode() {

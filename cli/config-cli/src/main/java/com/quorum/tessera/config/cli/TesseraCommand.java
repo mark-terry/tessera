@@ -76,6 +76,11 @@ public class TesseraCommand implements Callable<CliResult> {
       description = "Output the server URI(s) to file")
   private boolean outputServerURIs;
 
+  @CommandLine.Option(
+      names = {"--outputServerURIPath"},
+      description = "The path for the output server URIs")
+  private String outputServerURIPath;
+
   @CommandLine.Mixin public DebugOptions debugOptions;
 
   @CommandLine.Unmatched public List<String> unmatchedEntries;
@@ -125,6 +130,7 @@ public class TesseraCommand implements Callable<CliResult> {
 
     if (outputServerURIs) {
       config.setOutputServerURIs(true);
+      config.setOutputServerURIPath(outputServerURIPath);
     }
 
     final Set<ConstraintViolation<Config>> violations = validator.validate(config);

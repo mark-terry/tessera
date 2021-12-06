@@ -7,11 +7,10 @@ import com.quorum.tessera.config.apps.TesseraApp;
 import com.quorum.tessera.recovery.Recovery;
 import com.quorum.tessera.server.TesseraServer;
 import com.quorum.tessera.server.TesseraServerFactory;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -179,26 +178,23 @@ public enum Launcher {
             .findFirst()
             .orElse(null);
 
-    final String urlString = config.getJdbcConfig().getUrl();
-    final String dirPath = urlString.split(":")[2].split(";")[0];
-
+    final Path path = Paths.get(config.outputServerURIPath());
     final List<String> uriPaths = new LinkedList<>();
 
-    uriPaths.add(Launcher.writePortFiles(dirPath, q2tServer, "q2tServer.uri"));
-    uriPaths.add(Launcher.writePortFiles(dirPath, p2pServer, "p2pServer.uri"));
-    uriPaths.add(Launcher.writePortFiles(dirPath, thirdPartyServer, "thirdPartyServer.uri"));
+    uriPaths.add(Launcher.writeURIFile(path, q2tServer, "q2tServer.uri"));
+    uriPaths.add(Launcher.writeURIFile(path, p2pServer, "p2pServer.uri"));
+    uriPaths.add(Launcher.writeURIFile(path, thirdPartyServer, "thirdPartyServer.uri"));
 
     return uriPaths;
   }
 
-  private static String writePortFiles(
-      final String dirPath, final TesseraServer tesseraServer, final String output)
+  private static String writeURIFile(
+      final Path dirPath, final TesseraServer tesseraServer, final String outputFile)
       throws IOException {
-    final File newFile = new File(dirPath, output);
-    final FileWriter fileWriter = new FileWriter(newFile);
-    fileWriter.write(tesseraServer.getUri().toString());
-    fileWriter.flush();
-    fileWriter.close();
-    return newFile.getAbsolutePath();
+    final Path path =
+        Files.writeString(
+            Path.of(dirPath.toAbsolutePath() + "/" + outputFile),
+            tesseraServer.getUri().toString());
+    return path.toString();
   }
 }
